@@ -7,7 +7,7 @@ const qdrant =new QdrantClient({
     port:6333
 });
 
-const COLLECTION="documents";//all chunks store here separated by uder id
+const COLLECTION="HTL-Documents";//all chunks store here separated by uder id
 
 async function createCollection(){
     try{
