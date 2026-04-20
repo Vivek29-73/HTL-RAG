@@ -5,7 +5,7 @@ const cookieParser=require("cookie-parser");
 const cors=require("cors");
 const auth=require("./routes/auth");
 const document=require("./routes/documents");
-const { createCollection } = require("./utils/vectorDB")
+const { createCollection , createDocumentCollection} = require("./utils/vectorDB")
 const ask=require("./routes/ask");
 
 const app=express();
@@ -27,8 +27,9 @@ app.use("/api/ask",ask)
 //connection with mongodb database
 mongoose.connect(process.env.MONGODB_URI).
 then(async()=>{console.log("db connected");
-      await createCollection()     
-    console.log("Qdrant collection ready")
+      await createCollection()  ;
+      await createDocumentCollection();
+     console.log("Qdrant collections ready");
 })
 .catch((err)=>{
     console.log("error:", err);
