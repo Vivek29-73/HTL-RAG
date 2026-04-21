@@ -8,8 +8,9 @@ const {extractText}=require("../utils/extractor");
 const {validateDocument}=require("../utils/validator");
 const chunkText=require("../utils/chunker");
 const {embedChunks}=require("../utils/embedder");
-const {storeChunks,deleteDocumentChunks}=require("../utils/vectorDB");
-
+const { storeChunks, deleteDocumentChunks, storeDocumentVector, deleteDocumentVector, searchDocuments } = require("../utils/vectorDB")
+const { generateEmbeddings } = require("../utils/embedder")
+const { validateQuery } = require("../utils/validator")
 //multer setup
 const upload=multer({
     dest:"uploads/",
@@ -58,6 +59,14 @@ router.post("/upload",protect,upload.array("documents",10),async(req,res)=>{
                 const embeddedChunks=await embedChunks(chunks);
 
                 await storeChunks(embeddedChunks,userId,doc._id.toString());
+                
+                // stores ONE vector representing whole document
+                   await storeDocumentVector(
+                    userId,
+                    doc._id.toString(),
+                    extracted.filename,
+                    embeddedChunks
+                )
 
                 await Document.findByIdAndUpdate(doc._id,{
                     status:"ready",
@@ -88,6 +97,47 @@ router.post("/upload",protect,upload.array("documents",10),async(req,res)=>{
         res.status(500).json({error: err.message})
     }
 });
+
+// SEARCH DOCUMENTS ROUTE 
+router.post("/search", protect, async(req, res) => {
+    try {
+        const { query } = req.body
+        const userId = req.user._id.toString()
+
+        if(!query || query.trim().length === 0) {
+            return res.status(400).json({ error: "please enter a search query" })
+        }
+
+        //validate query
+        const cleanQuery = validateQuery(query)
+
+        // convert query to vector
+        const queryVector = await generateEmbeddings(cleanQuery)
+    
+      // search document_index collection
+        const topDocuments = await searchDocuments(queryVector, userId, 5)
+        // not chunks — whole documents
+        // filtered by userId
+
+        if(topDocuments.length === 0) {
+            return res.json({
+                documents: [],
+                message: "no relevant documents found. please upload documents first"
+            })
+        }
+
+        res.json({
+            documents: topDocuments
+            // returns array of:
+            // { documentId, filename, totalChunks, score }
+        })
+
+    } catch(err) {
+        res.status(500).json({ error: err.message })
+    }
+})
+
+
 
 router.get("/my-documents", protect, async(req, res) => {
     try {
@@ -138,8 +188,10 @@ router.delete("/:documentId", protect, async(req, res) => {
         }
 
         // delete chunks from Qdrant first
-        
         await deleteDocumentChunks(documentId)
+
+      // delete document vector from Qdrant 
+        await deleteDocumentVector(documentId)//if not delete both doc and chunk vector,still show result relate to iyyt
       
 
         // then delete record from MongoDB

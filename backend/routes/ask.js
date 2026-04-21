@@ -3,7 +3,7 @@ const router=express.Router();
 const protect=require("../middleware/auth")
 const {validateQuery}=require("../utils/validator");
 const {generateEmbeddings}=require("../utils/embedder");
-const {searchChunks}=require("../utils/vectorDB")
+const {searchChunks, searchChunksFromDocs}=require("../utils/vectorDB")
 const {askLLM}=require("../utils/llm")
 const History=require("../models/history");
 
