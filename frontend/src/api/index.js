@@ -4,14 +4,11 @@
 
 const BASE_URL = "http://localhost:5000/api"
 
-// AUTH API CALLS
 export async function registerUser(name, email, password) {
     const res = await fetch(`${BASE_URL}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        // credentials include = send cookies with request
-        // needed for auth to work
         body: JSON.stringify({ name, email, password })
     })
     return res.json()
@@ -42,23 +39,15 @@ export async function getMe() {
     return res.json()
 }
 
-// DOCUMENT API CALLS
 export async function uploadDocuments(files) {
     const formData = new FormData()
-    // FormData is used to send files
-    // same as form-data in Postman
-
     for(const file of files) {
         formData.append("documents", file)
-        // "documents" must match multer field name in backend
     }
-
     const res = await fetch(`${BASE_URL}/documents/upload`, {
         method: "POST",
         credentials: "include",
         body: formData
-        // no Content-Type header needed for FormData
-        // browser sets it automatically with boundary
     })
     return res.json()
 }
@@ -78,13 +67,27 @@ export async function deleteDocument(documentId) {
     return res.json()
 }
 
-// ASK API CALLS
-export async function askQuestion(question) {
+// NEW — searches documents by topic
+// returns top 5 relevant documents
+export async function searchDocuments(query) {
+    const res = await fetch(`${BASE_URL}/documents/search`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ query })
+    })
+    return res.json()
+}
+
+// UPDATED — now accepts mode and documentIds
+export async function askQuestion(question, mode = "simple", documentIds = []) {
     const res = await fetch(`${BASE_URL}/ask`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ question })
+        body: JSON.stringify({ question, mode, documentIds })
+        // mode tells backend which system to use
+        // documentIds only needed for from-docs mode
     })
     return res.json()
 }
